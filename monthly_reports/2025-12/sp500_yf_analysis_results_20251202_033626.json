@@ -1,0 +1,182 @@
+[
+  {
+    "symbol": "GOOGL",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 6.112351949696114,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 0.0,
+    "score": 71.22247038993922,
+    "grade": "A+"
+  },
+  {
+    "symbol": "GOOG",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 5.987620906898516,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 0.0,
+    "score": 71.1975241813797,
+    "grade": "A+"
+  },
+  {
+    "symbol": "CNC",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 12.639512620951212,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 0.0,
+    "score": 72.52790252419024,
+    "grade": "A+"
+  },
+  {
+    "symbol": "ZBH",
+    "total_trades": 1,
+    "win_rate": 0.0,
+    "avg_profit_pct": -5.911278738407635,
+    "target_hit_rate": 0.0,
+    "avg_max_drawdown": 15.80111538251859,
+    "score": -1.5801115382518591,
+    "grade": "F"
+  },
+  {
+    "symbol": "JPM",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 3.3999069330043397,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 4.500443489367006,
+    "score": 70.22993703766417,
+    "grade": "A+"
+  },
+  {
+    "symbol": "GS",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 3.6278771829155856,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 5.361098673111051,
+    "score": 70.189465569272,
+    "grade": "A+"
+  },
+  {
+    "symbol": "MS",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 7.105223120528302,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 0.0,
+    "score": 71.42104462410566,
+    "grade": "A+"
+  },
+  {
+    "symbol": "SPGI",
+    "total_trades": 1,
+    "win_rate": 0.0,
+    "avg_profit_pct": -8.041709121358712,
+    "target_hit_rate": 0.0,
+    "avg_max_drawdown": 14.30983753386469,
+    "score": -1.430983753386469,
+    "grade": "F"
+  },
+  {
+    "symbol": "LYFT",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 14.493511249492693,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 7.303105636884171,
+    "score": 72.16839168621011,
+    "grade": "A+"
+  },
+  {
+    "symbol": "MO",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 3.009873242497413,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 0.0,
+    "score": 70.60197464849948,
+    "grade": "A+"
+  },
+  {
+    "symbol": "TSN",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 3.7003393094616186,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 7.999274010467341,
+    "score": 69.9401404608456,
+    "grade": "A+"
+  },
+  {
+    "symbol": "RTX",
+    "total_trades": 1,
+    "win_rate": 0.0,
+    "avg_profit_pct": -0.9783053247133041,
+    "target_hit_rate": 0.0,
+    "avg_max_drawdown": 3.939168283912747,
+    "score": -0.39391682839127473,
+    "grade": "F"
+  },
+  {
+    "symbol": "J",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 3.7455608278337693,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 1.1758984160428194,
+    "score": 70.63152232396247,
+    "grade": "A+"
+  },
+  {
+    "symbol": "GNRC",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 9.057996915601153,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 12.631744730352928,
+    "score": 70.54842491008493,
+    "grade": "A+"
+  },
+  {
+    "symbol": "CHRW",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 20.155168515517445,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 3.498832211317074,
+    "score": 73.68115048197178,
+    "grade": "A+"
+  },
+  {
+    "symbol": "ETR",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 2.8028779764823146,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 1.5309493945245083,
+    "score": 70.40748065584403,
+    "grade": "A+"
+  },
+  {
+    "symbol": "HST",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 4.211785922046367,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 4.813484380341824,
+    "score": 70.36100874637509,
+    "grade": "A+"
+  },
+  {
+    "symbol": "BRX",
+    "total_trades": 1,
+    "win_rate": 100.0,
+    "avg_profit_pct": 2.3233550580356677,
+    "target_hit_rate": 100.0,
+    "avg_max_drawdown": 3.1346132083519764,
+    "score": 70.15120969077194,
+    "grade": "A+"
+  }
+]
