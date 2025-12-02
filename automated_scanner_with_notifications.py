@@ -102,6 +102,15 @@ class AutomatedSignalNotifier:
                 print(f"⚠️ No data for {symbol}")
                 return None
 
+            # FLATTEN POSSIBLE MULTIINDEX COLUMNS
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+
+            # Keep only Close column
+            if "Close" not in df.columns:
+                print(f"⚠️ No 'Close' column for {symbol} after download.")
+                return None
+
             df = df[["Close"]].copy()
             df.dropna(inplace=True)
             return df
@@ -160,6 +169,14 @@ class AutomatedSignalNotifier:
             vix = yf.download("^VIX", period="5d", interval="1d", progress=False)
             if vix.empty:
                 print("⚠️ Could not fetch VIX, proceeding anyway.")
+                return True
+
+            # FLATTEN POSSIBLE MULTIINDEX COLUMNS FOR VIX AS WELL
+            if isinstance(vix.columns, pd.MultiIndex):
+                vix.columns = vix.columns.get_level_values(0)
+
+            if "Close" not in vix.columns:
+                print("⚠️ No 'Close' column in VIX data. Proceeding anyway.")
                 return True
 
             latest_vix = float(vix["Close"].iloc[-1])
