@@ -1,0 +1,33 @@
+name: Daily Trading Scanner
+
+on:
+  schedule:
+    # Run at 10:00 AM EST every weekday (3:00 PM UTC)
+    - cron: '0 15 * * 1-5'
+  
+  # Allow manual running for testing
+  workflow_dispatch:
+
+jobs:
+  scan-signals:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Get the code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install required packages
+      run: |
+        pip install --upgrade pip
+        pip install yfinance pandas numpy requests
+    
+    - name: Run trading scanner
+      env:
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      run: |
+        python automated_scanner_with_notifications.py
