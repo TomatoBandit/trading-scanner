@@ -1,0 +1,32 @@
+name: Monthly SP500 Analysis
+
+on:
+  schedule:
+    # Run every Monday at 10:00 AM Eastern (15:00 UTC)
+    - cron: "0 15 * * 1"
+  workflow_dispatch:  # allow manual running for testing
+
+jobs:
+  run-monthly-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install required packages
+        run: |
+          pip install --upgrade pip
+          pip install yfinance pandas numpy requests matplotlib
+
+      - name: Run integrated SP500 analysis
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUB_ACTIONS: "true"
+        run: |
+          python integrated_trading_system.py
