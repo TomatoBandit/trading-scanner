@@ -420,9 +420,14 @@ class AutomatedSignalNotifier:
 def main() -> int:
     notifier = AutomatedSignalNotifier()
     opportunities = notifier.run_automated_scan()
-    # Exit code 0 if there were opportunities, 1 if none (for CI signaling)
-    return 0 if opportunities else 1
 
+    if opportunities:
+        print(f"🎯 {len(opportunities)} opportunities found.")
+    else:
+        print("ℹ️ No opportunities found. Scan completed successfully.")
+
+    # Always return 0 so CI doesn't treat "no trades" as a failure.
+    return 0
 
 if __name__ == "__main__":
     exit(main())
