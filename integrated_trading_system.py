@@ -640,17 +640,28 @@ def main():
 
     # Detect if running in GitHub Actions
     running_in_ci = os.getenv("GITHUB_ACTIONS", "").lower() == "true"
+    event_name = os.getenv("GITHUB_EVENT_NAME", "").lower()
 
     if running_in_ci:
-        # In CI: only run on the first Monday, and always force a new analysis
-        if not is_first_monday_utc():
-            print("🗓️ Not the first Monday of the month (UTC). Skipping analysis.")
-            return
+        # If it's a scheduled run, only execute on the first Monday (UTC)
+        if event_name == "schedule":
+            if not is_first_monday_utc():
+                print("🗓️ Not the first Monday of the month (UTC). Skipping analysis.")
+                return
+            print("📅 First Monday (scheduled run) — running full analysis.")
+
+        # If it's a manual run (workflow_dispatch), always run
+        elif event_name == "workflow_dispatch":
+            print("🧪 Manual CI run (workflow_dispatch) — running full analysis regardless of date.")
+        else:
+            # Fallback for any other CI context
+            print(f"ℹ️ CI run with event '{event_name}' — running analysis.")
 
         print("🤖 Running in CI: forcing fresh analysis, no prompts.")
         force_new = True
+
     else:
-        # Local / interactive mode (same behavior you had before)
+        # Local / interactive mode (same behavior as before)
         choice = input("Use existing analysis if available? (y/n): ").lower().strip()
         force_new = (choice != 'y')
     
@@ -667,4 +678,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
