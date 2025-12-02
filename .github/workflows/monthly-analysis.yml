@@ -2,9 +2,13 @@ name: Monthly SP500 Analysis
 
 on:
   schedule:
-    # Run every Monday at 10:00 AM Eastern (15:00 UTC)
+    # Every Monday at 10:00 AM Eastern (15:00 UTC)
     - cron: "0 15 * * 1"
-  workflow_dispatch:  # allow manual running for testing
+  # Allow manual runs from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed so we can commit/push monthly_reports + watchlist
 
 jobs:
   run-monthly-analysis:
@@ -13,6 +17,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          # full history so git diff/commit works properly
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -28,5 +35,39 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GITHUB_ACTIONS: "true"
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           python integrated_trading_system.py
+
+      - name: Show generated files (for debugging/logs)
+        run: |
+          echo "Workspace tree after analysis:"
+          ls -R
+
+      - name: Commit monthly reports and watchlist to repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure git identity for the commit
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          # Show status before adding
+          echo "Git status before adding:"
+          git status
+
+          # Add the monthly reports folder and the latest watchlist file
+          git add monthly_reports integrated_watchlist_latest.txt || true
+
+          # If there are no changes (git diff returns 0), don't commit
+          if git diff --cached --quiet; then
+            echo "No changes to commit. Exiting commit step."
+            exit 0
+          fi
+
+          commit_message="Monthly SP500 analysis $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          echo "Committing with message: $commit_message"
+          git commit -m "$commit_message"
+
+          # Push back to the same branch this workflow is running on
+          git push
