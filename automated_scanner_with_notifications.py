@@ -24,34 +24,15 @@ class AutomatedSignalNotifier:
         
         # Method 1: From environment variable (GitHub Actions)
         self.discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL', '')
-        
-        # Method 2: Direct URL (for local testing) - EDIT THIS LINE for local use
-        if not self.discord_webhook_url:
-            # EDIT THE LINE BELOW: Paste your Discord webhook URL between the quotes for local testing
-            self.discord_webhook_url = 'PASTE_YOUR_DISCORD_WEBHOOK_URL_HERE_FOR_LOCAL_TESTING'
-        
-        # Email configuration (optional)
         self.email_enabled = os.getenv('EMAIL_ENABLED', 'false').lower() == 'true'
         self.sender_email = os.getenv('SENDER_EMAIL', '')
-        self.sender_password = os.getenv('SENDER_PASSWORD', '')  # App password
+        self.sender_password = os.getenv('SENDER_PASSWORD', '')
         self.recipient_email = os.getenv('RECIPIENT_EMAIL', '')
         
     def send_discord_notification(self, message, title="📊 Trading Signal Alert"):
         """Send notification to Discord via webhook"""
-        
-        # Check if webhook URL is configured
-        if not self.discord_webhook_url or self.discord_webhook_url == 'PASTE_YOUR_DISCORD_WEBHOOK_URL_HERE_FOR_LOCAL_TESTING':
-            print("❌ Discord webhook URL not configured!")
-            print("🔧 TO FIX:")
-            print("   For local testing: Edit the webhook URL in automated_scanner_with_notifications.py")
-            print("   For GitHub Actions: Make sure DISCORD_WEBHOOK_URL secret is set")
-            return False
-        
-        # Validate webhook URL format
-        if not self.discord_webhook_url.startswith("https://discord.com/api/webhooks/"):
-            print("❌ Discord webhook URL format is incorrect!")
-            print(f"🔍 Current URL: {self.discord_webhook_url[:50]}...")
-            print("✅ Should start with: https://discord.com/api/webhooks/")
+        if not self.discord_webhook_url:
+            print("❌ Discord webhook URL not configured")
             return False
             
         try:
@@ -60,41 +41,44 @@ class AutomatedSignalNotifier:
                     "title": title,
                     "description": message,
                     "color": 0x00ff00,  # Green color
-                    "timestamp": datetime.now().isoformat(),
-                    "footer": {
-                        "text": "Automated Trading Scanner"
-                    }
+                    "timestamp": datetime.now().isoformat()
                 }]
             }
             
-            response = requests.post(self.discord_webhook_url, json=data, timeout=10)
+            response = requests.post(self.discord_webhook_url, json=data)
             
             if response.status_code == 204:
                 print("✅ Discord notification sent successfully")
                 return True
-            elif response.status_code == 404:
-                print("❌ Discord webhook not found (404)")
-                print("🔧 The webhook may have been deleted. Create a new one in Discord.")
-                return False
-            elif response.status_code == 400:
-                print("❌ Discord webhook request invalid (400)")
-                print("🔧 Check webhook URL format")
-                return False
             else:
-                print(f"❌ Discord notification failed: HTTP {response.status_code}")
-                print(f"Response: {response.text}")
+                print(f"❌ Discord notification failed: {response.status_code}")
                 return False
                 
-        except requests.exceptions.Timeout:
-            print("❌ Discord notification timeout - slow connection")
-            return False
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Discord notification connection error: {e}")
-            return False
         except Exception as e:
-            print(f"❌ Discord notification unexpected error: {e}")
+            print(f"❌ Discord notification error: {e}")
             return False
-    
+        
+def market_is_tradable(self, vix_threshold=22.0):
+    """Simple VIX-based kill switch. Returns False in very high volatility."""
+    try:
+        vix = yf.download('^VIX', period='5d', interval='1d', progress=False)
+        if vix.empty:
+            print("⚠️ Could not fetch VIX, proceeding anyway.")
+            return True
+
+        latest_vix = float(vix['Close'].iloc[-1])
+        print(f"📊 Current VIX: {latest_vix:.2f}")
+
+        if latest_vix > vix_threshold:
+            print(f"⛔ VIX {latest_vix:.1f} > {vix_threshold} — skipping new trades today.")
+            return False
+
+        return True
+
+    except Exception as e:
+        print(f"⚠️ VIX check failed ({e}), proceeding without filter.")
+        return True
+
     def send_email_notification(self, subject, message):
         """Send email notification"""
         if not self.email_enabled or not all([self.sender_email, self.sender_password, self.recipient_email]):
@@ -142,18 +126,36 @@ class AutomatedSignalNotifier:
             print(f"   ❌ Error with {symbol}: {e}")
             return None
     
-    def calculate_signals(self, df, ma_period=20, std_multiplier=2.5):
-        """Calculate mean reversion signals with stricter threshold"""
-        if len(df) < ma_period + 5:
-            return None
-            
-        df['MA_20'] = df['Close'].rolling(window=ma_period).mean()
-        df['STD_20'] = df['Close'].rolling(window=ma_period).std()
-        df['Threshold'] = df['MA_20'] - (std_multiplier * df['STD_20'])
-        df['Below_Threshold'] = df['Close'] < df['Threshold']
-        df['Distance_from_MA'] = ((df['Close'] - df['MA_20']) / df['MA_20']) * 100
-        
-        return df
+def calculate_signals(self, df, ma_period=20, std_multiplier=2.5):
+    """Calculate mean reversion signals with trend + RSI filters."""
+    # Need enough data for MA20, MA50, RSI
+    min_len = max(ma_period, 50) + 5
+    if len(df) < min_len:
+        return None
+
+    df = df.copy()
+    df['MA_20'] = df['Close'].rolling(window=ma_period).mean()
+    df['STD_20'] = df['Close'].rolling(window=ma_period).std()
+    df['Threshold'] = df['MA_20'] - (std_multiplier * df['STD_20'])
+    df['Below_Threshold'] = df['Close'] < df['Threshold']
+    df['Distance_from_MA'] = (df['Close'] - df['MA_20']) / df['MA_20'] * 100
+
+    # Trend filter (uptrend on this timeframe)
+    df['MA_50'] = df['Close'].rolling(window=50).mean()
+    df['Trend_OK'] = (df['Close'] > df['MA_50']) & (df['MA_20'] > df['MA_50'])
+
+    # RSI 14
+    delta = df['Close'].diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.rolling(window=14).mean()
+    avg_loss = loss.rolling(window=14).mean()
+    rs = avg_gain / avg_loss
+    df['RSI_14'] = 100 - (100 / (1 + rs))
+    df['RSI_OK'] = df['RSI_14'] < 35  # oversold
+
+    return df
+
     
     def scan_watchlist(self, symbols, account_size=1000):
         """Scan watchlist and return opportunities"""
@@ -174,7 +176,9 @@ class AutomatedSignalNotifier:
                 latest = df.iloc[-1]
                 
                 # Check for signal with quality filters
-                if latest['Below_Threshold']:
+                # Check for signal with quality filters
+                if latest['Below_Threshold'] and latest.get('Trend_OK', True) and latest.get('RSI_OK', True):
+
                     potential_gain = ((latest['MA_20'] - latest['Close']) / latest['Close']) * 100
                     risk_level = abs(latest['Distance_from_MA'])
                     
@@ -245,6 +249,13 @@ class AutomatedSignalNotifier:
     
     def run_automated_scan(self):
         """Run the full automated scan with notifications"""
+        print("🚀 Starting automated scan...")
+
+    # VIX-based kill switch
+    if not self.market_is_tradable():
+        print("🛑 Market conditions not suitable (high VIX). No scan run.")
+        return []
+    
         print("🤖 AUTOMATED TRADING SIGNAL SCANNER")
         print("=" * 40)
         print(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -312,19 +323,11 @@ class AutomatedSignalNotifier:
 
 def main():
     """Main function for automated scanning"""
-    try:
-        notifier = AutomatedSignalNotifier()
-        opportunities = notifier.run_automated_scan()
-        
-        # Success: Scanner ran correctly, regardless of signals found
-        print(f"\n✅ SCAN COMPLETED SUCCESSFULLY")
-        print(f"📊 Result: {len(opportunities)} quality signals found")
-        return 0  # Always return success if scan completed
-        
-    except Exception as e:
-        # Failure: Actual error occurred
-        print(f"\n❌ SCAN FAILED: {e}")
-        return 1  # Return failure only on actual errors
+    notifier = AutomatedSignalNotifier()
+    opportunities = notifier.run_automated_scan()
+    
+    # Return exit code for automation systems
+    return 0 if opportunities else 1
 
 if __name__ == "__main__":
     exit(main())
