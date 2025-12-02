@@ -442,9 +442,14 @@ class AutomatedSignalNotifier:
             print("ℹ️ No qualifying opportunities found today.")
             opportunities = []
 
+            # Optional: send a heartbeat to Discord so you know the scan ran
+            try:
+                self.send_discord_no_opportunities()
+            except Exception as e:
+                print(f"⚠️ Discord 'no opportunities' notification error: {e}")
+
         print("✅ Scan complete.")
         return opportunities
-
 
 # -------------------------------------------------------------------------
 # Entry point
