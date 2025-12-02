@@ -359,6 +359,38 @@ class AutomatedSignalNotifier:
                 )
         except Exception as e:
             print(f"⚠️ Error sending Discord notification: {e}")
+            
+    def send_discord_no_opportunities(self) -> None:
+        """
+        Send a simple heartbeat message to Discord when no opportunities are found.
+        """
+        if not self.discord_webhook_url:
+            print("⚠️ DISCORD_WEBHOOK_URL not set. Skipping Discord 'no-opps' notification.")
+            return
+
+        now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+        payload = {
+            "embeds": [
+                {
+                    "title": "📭 No Mean Reversion Setups Today",
+                    "description": "The scanner ran successfully but did not find any qualifying opportunities based on the current filters.",
+                    "color": 0x888888,
+                    "footer": {"text": f"Scan time: {now_str}"},
+                }
+            ]
+        }
+
+        try:
+            response = requests.post(self.discord_webhook_url, json=payload, timeout=10)
+            if response.status_code == 204:
+                print("✅ Discord 'no opportunities' notification sent successfully.")
+            else:
+                print(
+                    f"⚠️ Discord 'no opportunities' notification failed: "
+                    f"{response.status_code} {response.text}"
+                )
+        except Exception as e:
+            print(f"⚠️ Error sending 'no opportunities' Discord notification: {e}")
 
     # -------------------------------------------------------------------------
     # Email notification (stub – safe no-op unless you wire it up)
