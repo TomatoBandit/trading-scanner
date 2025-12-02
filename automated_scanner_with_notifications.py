@@ -17,6 +17,7 @@ class AutomatedSignalNotifier:
     - Applies trend + RSI filters
     - Optionally skips trading when VIX is too high
     - Sends notifications to Discord (and prints to console)
+    - (NEW) Logs signals to Google Sheets via Apps Script webhook
     """
 
     def __init__(
@@ -40,6 +41,12 @@ class AutomatedSignalNotifier:
 
         # Discord webhook (from environment / GitHub secret)
         self.discord_webhook_url = os.getenv("DISCORD_WEBHOOK_URL", "").strip()
+
+        # NEW: Google Sheets webhook URL (Apps Script web app)
+        self.sheets_webhook_url = os.getenv("SHEETS_WEBHOOK_URL", "").strip()
+
+        # NEW: last seen VIX value (for logging context)
+        self.last_vix: Optional[float] = None
 
     # -------------------------------------------------------------------------
     # Watchlist loading
@@ -172,11 +179,13 @@ class AutomatedSignalNotifier:
         """
         Simple VIX-based kill switch.
         Returns False in very high volatility regimes.
+        Also stores the last seen VIX for logging.
         """
         try:
             vix = yf.download("^VIX", period="5d", interval="1d", progress=False)
             if vix.empty:
                 print("⚠️ Could not fetch VIX, proceeding anyway.")
+                self.last_vix = None
                 return True
 
             if isinstance(vix.columns, pd.MultiIndex):
@@ -184,9 +193,11 @@ class AutomatedSignalNotifier:
 
             if "Close" not in vix.columns:
                 print("⚠️ No 'Close' column in VIX data. Proceeding anyway.")
+                self.last_vix = None
                 return True
 
             latest_vix = float(vix["Close"].iloc[-1])
+            self.last_vix = latest_vix
             print(f"📊 Current VIX: {latest_vix:.2f}")
 
             if latest_vix > vix_threshold:
@@ -200,6 +211,7 @@ class AutomatedSignalNotifier:
 
         except Exception as e:
             print(f"⚠️ VIX check failed ({e}), proceeding without filter.")
+            self.last_vix = None
             return True
 
     # -------------------------------------------------------------------------
@@ -403,6 +415,60 @@ class AutomatedSignalNotifier:
             print(f"⚠️ Error sending 'no opportunities' Discord notification: {e}")
 
     # -------------------------------------------------------------------------
+    # Google Sheets logging
+    # -------------------------------------------------------------------------
+    def log_signals_to_google_sheets(self, opportunities: List[Dict[str, Any]]) -> None:
+        """
+        Send today's opportunities to Google Sheets via Apps Script webhook.
+        Each opportunity becomes one row.
+        """
+        if not opportunities:
+            print("ℹ️ No opportunities to log to Google Sheets.")
+            return
+
+        if not self.sheets_webhook_url:
+            print("⚠️ SHEETS_WEBHOOK_URL not set. Skipping Google Sheets logging.")
+            return
+
+        timestamp_utc = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        vix_value = float(self.last_vix) if self.last_vix is not None else None
+
+        rows = []
+        for opp in opportunities:
+            rows.append(
+                {
+                    "timestamp_utc": timestamp_utc,
+                    "symbol": opp["symbol"],
+                    "current_price": opp["current_price"],
+                    "target_price": opp["target_price"],
+                    "stop_loss_price": opp["stop_loss_price"],
+                    "suggested_shares": opp["shares"],
+                    "potential_gain_pct": opp["potential_gain_pct"],
+                    "risk_reward_ratio": opp["risk_reward_ratio"],
+                    "rsi_14": opp["rsi"],
+                    "distance_from_ma": opp["distance_from_ma"],
+                    "vix": vix_value,
+                    "account_size": self.account_size,
+                    "position_size_pct": self.position_size_pct,
+                    "notes": "",
+                }
+            )
+
+        payload = {"rows": rows}
+
+        try:
+            resp = requests.post(self.sheets_webhook_url, json=payload, timeout=10)
+            if resp.status_code in (200, 204):
+                print("✅ Logged opportunities to Google Sheets.")
+            else:
+                print(
+                    f"⚠️ Google Sheets logging failed: "
+                    f"{resp.status_code} {resp.text}"
+                )
+        except Exception as e:
+            print(f"⚠️ Error logging to Google Sheets: {e}")
+
+    # -------------------------------------------------------------------------
     # Email stub
     # -------------------------------------------------------------------------
     def send_email_notification(self, opportunities: List[Dict[str, Any]]) -> None:
@@ -446,6 +512,12 @@ class AutomatedSignalNotifier:
                 self.send_email_notification(opportunities)
             except Exception as e:
                 print(f"⚠️ Email notification error: {e}")
+
+            # NEW: log to Google Sheets
+            try:
+                self.log_signals_to_google_sheets(opportunities)
+            except Exception as e:
+                print(f"⚠️ Google Sheets logging error: {e}")
         else:
             print("ℹ️ No qualifying opportunities found today.")
             opportunities = []
