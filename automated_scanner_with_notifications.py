@@ -25,20 +25,33 @@ class AutomatedSignalNotifier:
         # Method 1: From environment variable (GitHub Actions)
         self.discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL', '')
         
-        # Method 2: Direct URL (for local testing)
+        # Method 2: Direct URL (for local testing) - EDIT THIS LINE for local use
         if not self.discord_webhook_url:
-            # PASTE YOUR URL HERE for local testing
-            self.discord_webhook_url = 'https://discord.com/api/webhooks/1445198887110447135/ikOACsTRCzwb7yJw7RYU5e_AcEzwX8HSS2lCX5m6AzIzaEMXtMGzMiCjZEcqgBgJsjmN'
+            # EDIT THE LINE BELOW: Paste your Discord webhook URL between the quotes for local testing
+            self.discord_webhook_url = 'PASTE_YOUR_DISCORD_WEBHOOK_URL_HERE_FOR_LOCAL_TESTING'
         
+        # Email configuration (optional)
         self.email_enabled = os.getenv('EMAIL_ENABLED', 'false').lower() == 'true'
         self.sender_email = os.getenv('SENDER_EMAIL', '')
-        self.sender_password = os.getenv('SENDER_PASSWORD', '')
+        self.sender_password = os.getenv('SENDER_PASSWORD', '')  # App password
         self.recipient_email = os.getenv('RECIPIENT_EMAIL', '')
         
     def send_discord_notification(self, message, title="📊 Trading Signal Alert"):
         """Send notification to Discord via webhook"""
-        if not self.discord_webhook_url:
-            print("❌ Discord webhook URL not configured")
+        
+        # Check if webhook URL is configured
+        if not self.discord_webhook_url or self.discord_webhook_url == 'PASTE_YOUR_DISCORD_WEBHOOK_URL_HERE_FOR_LOCAL_TESTING':
+            print("❌ Discord webhook URL not configured!")
+            print("🔧 TO FIX:")
+            print("   For local testing: Edit the webhook URL in automated_scanner_with_notifications.py")
+            print("   For GitHub Actions: Make sure DISCORD_WEBHOOK_URL secret is set")
+            return False
+        
+        # Validate webhook URL format
+        if not self.discord_webhook_url.startswith("https://discord.com/api/webhooks/"):
+            print("❌ Discord webhook URL format is incorrect!")
+            print(f"🔍 Current URL: {self.discord_webhook_url[:50]}...")
+            print("✅ Should start with: https://discord.com/api/webhooks/")
             return False
             
         try:
@@ -47,21 +60,39 @@ class AutomatedSignalNotifier:
                     "title": title,
                     "description": message,
                     "color": 0x00ff00,  # Green color
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
+                    "footer": {
+                        "text": "Automated Trading Scanner"
+                    }
                 }]
             }
             
-            response = requests.post(self.discord_webhook_url, json=data)
+            response = requests.post(self.discord_webhook_url, json=data, timeout=10)
             
             if response.status_code == 204:
                 print("✅ Discord notification sent successfully")
                 return True
+            elif response.status_code == 404:
+                print("❌ Discord webhook not found (404)")
+                print("🔧 The webhook may have been deleted. Create a new one in Discord.")
+                return False
+            elif response.status_code == 400:
+                print("❌ Discord webhook request invalid (400)")
+                print("🔧 Check webhook URL format")
+                return False
             else:
-                print(f"❌ Discord notification failed: {response.status_code}")
+                print(f"❌ Discord notification failed: HTTP {response.status_code}")
+                print(f"Response: {response.text}")
                 return False
                 
+        except requests.exceptions.Timeout:
+            print("❌ Discord notification timeout - slow connection")
+            return False
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Discord notification connection error: {e}")
+            return False
         except Exception as e:
-            print(f"❌ Discord notification error: {e}")
+            print(f"❌ Discord notification unexpected error: {e}")
             return False
     
     def send_email_notification(self, subject, message):
@@ -281,11 +312,19 @@ class AutomatedSignalNotifier:
 
 def main():
     """Main function for automated scanning"""
-    notifier = AutomatedSignalNotifier()
-    opportunities = notifier.run_automated_scan()
-    
-    # Return exit code for automation systems
-    return 0 if opportunities else 1
+    try:
+        notifier = AutomatedSignalNotifier()
+        opportunities = notifier.run_automated_scan()
+        
+        # Success: Scanner ran correctly, regardless of signals found
+        print(f"\n✅ SCAN COMPLETED SUCCESSFULLY")
+        print(f"📊 Result: {len(opportunities)} quality signals found")
+        return 0  # Always return success if scan completed
+        
+    except Exception as e:
+        # Failure: Actual error occurred
+        print(f"\n❌ SCAN FAILED: {e}")
+        return 1  # Return failure only on actual errors
 
 if __name__ == "__main__":
     exit(main())
